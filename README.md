@@ -72,3 +72,37 @@ Base URL (dev): `http://localhost:5000`
 - Projeto: [backend/UserService/UserService.csproj](backend/UserService/UserService.csproj)
 - Código principal: [backend/UserService/Program.cs](backend/UserService/Program.cs)
 - Scripts SQL: [backend/UserService/sql/001_create_users.sql](backend/UserService/sql/001_create_users.sql)
+
+## Deploy no Render (Docker)
+
+Passo a passo mínimo para publicar no Render usando o `UserService/Dockerfile`:
+
+1) Prepare o repositório
+- Garanta que o `UserService/Dockerfile` esteja na pasta `UserService/` e que o `UserService.csproj` aponte para `net10.0` (ou a versão correta).
+
+2) Não commite secrets
+- Remova connection strings sensíveis do `docker-compose.yml` e `appsettings.*.json` antes de commitar. Use as Environment Variables do Render para a conexão com o Postgres.
+
+3) Criar o Web Service no Render
+- No painel do Render: New → Web Service → Environment: Docker.
+- Aponte para o seu repositório e informe o caminho do Dockerfile se estiver em subpasta (ex.: `UserService/Dockerfile`).
+
+4) Variáveis de ambiente (Render Dashboard → Environment)
+- `ConnectionStrings__DefaultConnection` com o valor do Postgres (ex.:
+  `Host=dpg-d8nk6u0k1i2s73de8tig-a.oregon-postgres.render.com;Port=5432;Database=minhaapp;Username=teste;Password=<SENHA>;SSL Mode=Require;Trust Server Certificate=true`)
+- `ASPNETCORE_ENVIRONMENT=Production`
+
+5) Comando de start / Migrations
+- Se precisar aplicar migrations ou executar tarefas antes do start, configure o campo "Start Command" do Render para algo como:
+  `dotnet UserService.dll` (ou um script que rode migrations e depois inicie a app).
+
+6) Teste local antes do deploy
+- Build e run local da imagem:
+  `docker build -t userservice:local -f UserService/Dockerfile .`
+  `docker run -e "ConnectionStrings__DefaultConnection=Host=localhost;Port=5432;Database=minhaapp;Username=teste;Password=YourLocalPassword;SSL Mode=Require;Trust Server Certificate=true" -p 5000:80 userservice:local`
+
+7) Troubleshooting no Render
+- Verifique os logs do serviço no painel do Render para erros na inicialização ou conexão com o banco.
+- Confirme a string de conexão e parâmetros de SSL.
+
+Se quiser, eu adiciono um `appsettings.Production.json` (sem secrets), um `.env.example` e instruções para automatizar migrations no startup.
